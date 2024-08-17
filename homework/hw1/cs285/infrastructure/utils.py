@@ -34,7 +34,10 @@ def sample_trajectory(env, policy, max_path_length, render=False):
     
         # TODO use the most recent ob to decide what to do
         # ac = TODO # HINT: this is a numpy array
-        ac = policy.get_action(ob)
+        ob_tensor = ptu.from_numpy(ob).unsqueeze(0)
+        action_distribution = policy.forward(ob_tensor)
+        ac = action_distribution.sample().cpu().numpy()
+        ac = ac[0]
 
         # TODO: take that action and get reward and next ob
         next_ob, rew, done, _ = env.step(ac)
