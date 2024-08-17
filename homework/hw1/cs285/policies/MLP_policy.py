@@ -2,8 +2,8 @@
 Defines a pytorch policy as the agent's actor
 
 Functions to edit:
-    2. forward
-    3. update
+    1. forward
+    2. update
 """
 
 import abc
@@ -56,7 +56,7 @@ def build_mlp(
 
 class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     """
-    Defines an MLP for supervised learning which maps observations to continuous
+    Defines a MLP for supervised learning which maps observations to continuous
     actions.
 
     Attributes
@@ -129,7 +129,10 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # through it. For example, you can return a torch.FloatTensor. You can also
         # return more flexible objects, such as a
         # `torch.distributions.Distribution` object. It's up to you!
-        raise NotImplementedError
+
+        mean = self.mean_net(observation)
+        action_distribution = torch.distributions.Normal(mean, torch.exp(self.logstd))
+        return action_distribution
 
     def update(self, observations, actions):
         """
@@ -141,7 +144,18 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             dict: 'Training Loss': supervised learning loss
         """
         # TODO: update the policy and return the loss
-        loss = TODO
+        self.optimizer.zero_grad()
+        observations, actions = ptu.from_numpy(observations), ptu.from_numpy(actions)
+        action_distribution = self.forward(observations)
+    
+        # Negative log-likelihood loss
+        log_prob = action_distribution.log_prob(actions)
+        loss = -log_prob.mean()
+        
+        # Backpropagation
+        loss.backward()
+        self.optimizer.step()
+
         return {
             # You can add extra logging information here, but keep this line
             'Training Loss': ptu.to_numpy(loss),
